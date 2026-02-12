@@ -39,7 +39,7 @@ public class ScriptUtils {
 	}
 
 	public static String getMasterInstallScripts(String user, Map<String, String> envVars) {
-		/*String[] urls = {
+		String[] urls = {
 				"https://raw.githubusercontent.com/eu-nebulous/sal-scripts/refs/heads/main/installation-scripts-onm/MASTER_INSTALL_SCRIPT.sh",
 				"https://raw.githubusercontent.com/eu-nebulous/sal-scripts/refs/heads/main/installation-scripts-onm/MASTER_PRE_INSTALL_SCRIPT.sh",
 				"https://raw.githubusercontent.com/eu-nebulous/sal-scripts/refs/heads/main/installation-scripts-onm/MASTER_START_SCRIPT.sh" };
@@ -47,12 +47,12 @@ public class ScriptUtils {
 		for (String url : urls) {
 			script += getScriptFromUrl(url) + "\n";
 		}
-		return getEnvVarsSource(user) + "\n" + script;*/
-		return  "echo 'Hello from master!' && hostname && date";
+		return getEnvVarsSource(user) + "\n" + script;
+		//return  "echo 'Hello from master!' && hostname && date";
 	}
 
 	public static String getWorkerInstallScripts(String user, Map<String, String> envVars) {
-		/*String[] urls = {
+		String[] urls = {
 		"https://raw.githubusercontent.com/eu-nebulous/sal-scripts/refs/heads/main/installation-scripts-onm/WORKER_INSTALL_SCRIPT.sh",
 		"https://raw.githubusercontent.com/eu-nebulous/sal-scripts/refs/heads/main/installation-scripts-onm/WORKER_PRE_INSTALL_SCRIPT.sh",
 		"https://raw.githubusercontent.com/eu-nebulous/sal-scripts/refs/heads/main/installation-scripts-onm/WORKER_START_SCRIPT.sh" };
@@ -60,13 +60,13 @@ public class ScriptUtils {
 		for (String url : urls) {
 		script += getScriptFromUrl(url) + "\n";
 		}
-		return getEnvVarsSource(user) + "\n" + script;*/
-		return  "echo 'Hello from worker!' && hostname && date && echo 'Kubeadm join command: $variables_kubeCommand'";
+		return getEnvVarsSource(user) + "\n" + script;
+		//return  "echo 'Hello from worker!' && hostname && date && echo 'Kubeadm join command: $variables_kubeCommand'";
 	}
 
 	public static String getKubeadmJoinCommandScript() {
-		//return ScriptUtils.getScriptFromResource("create_kubeadm_token.sh");
-		return  "echo '!!NEB_SCRIPT_RESULT_KUBERNETES_JOIN_TOKEN:this-is-a-dummy-token!!'";
+		return ScriptUtils.getScriptFromResource("create_kubeadm_token.sh");
+		//return  "echo '!!NEB_SCRIPT_RESULT_KUBERNETES_JOIN_TOKEN:this-is-a-dummy-token!!'";
 	}
 
 
