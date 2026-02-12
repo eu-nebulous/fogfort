@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clouds Monitor - Fogfort</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .refresh-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .clouds-container {
+            display: grid;
+            gap: 20px;
+        }
+
+        .cloud-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cloud-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .cloud-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cloud-header:hover {
+            opacity: 0.95;
+        }
+
+        .cloud-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .cloud-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cloud-info-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .cloud-info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .cloud-content {
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div x-data="cloudsMonitor()" x-init="init()" class="container">
+        <div class="header">
+            <div>
+                <h1>Clouds Monitor</h1>
+                <div class="status-indicator" style="margin-top: 8px;">
+                    <span class="status-dot" :class="{ 'error': error }"></span>
+                    <span x-text="error ? 'Connection Error' : 'Connected'"></span>
+                    <span x-show="lastUpdate">• Last update: <span x-text="lastUpdate"></span></span>
+                </div>
+            </div>
+            <div class="refresh-controls">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                    <input type="checkbox" x-model="autoRefresh" @change="toggleAutoRefresh()">
+                    Auto-refresh
+                </label>
+                <button class="btn-secondary" @click="refreshInterval = refreshInterval === 5000 ? 10000 : 5000">
+                    <span x-text="refreshInterval / 1000 + 's'"></span>
+                </button>
+                <button class="btn-primary" @click="loadClouds()" :disabled="loading">
+                    <span x-show="!loading">Refresh</span>
+                    <span x-show="loading">Loading...</span>
+                </button>
+            </div>
+        </div>
+
+        <div x-show="loading && clouds.length === 0" class="loading">
+            <div class="spinner"></div>
+            <p>Loading clouds...</p>
+        </div>
+
+        <div x-show="!loading && clouds.length === 0" class="empty-state">
+            <div class="empty-state-icon">☁️</div>
+            <h2>No clouds found</h2>
+            <p>There are no clouds in the repository yet.</p>
+        </div>
+
+        <div class="clouds-container" x-show="!loading && clouds.length > 0">
+            <template x-for="cloud in clouds" :key="cloud.cloudId">
+                <div class="cloud-card">
+                    <div class="cloud-header" @click="toggleCloud(cloud.cloudId)">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+                                Cloud: <span x-text="cloud.cloudId"></span>
+                            </div>
+                            <div class="cloud-info">
+                                <div class="cloud-info-item">
+                                    <span class="cloud-info-label">Provider</span>
+                                    <span class="cloud-info-value" x-text="cloud.cloudProvider || 'N/A'"></span>
+                                </div>
+                                <div class="cloud-info-item">
+                                    <span class="cloud-info-label">Endpoint</span>
+                                    <span class="cloud-info-value" x-text="cloud.endpoint || 'N/A'"></span>
+                                </div>
+                                <div class="cloud-info-item">
+                                    <span class="cloud-info-label">Images</span>
+                                    <span class="cloud-info-value" x-text="(cloud.images || []).length"></span>
+                                </div>
+                                <div class="cloud-info-item">
+                                    <span class="cloud-info-label">Hardware</span>
+                                    <span class="cloud-info-value" x-text="(cloud.hardware || []).length"></span>
+                                </div>
+                                <div class="cloud-info-item">
+                                    <span class="cloud-info-label">Deployments</span>
+                                    <span class="cloud-info-value" x-text="(cloud.deploymentNodeNames || []).length"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="toggle-icon" :class="{ 'rotated': expandedClouds[cloud.cloudId] }">▼</div>
+                    </div>
+                    <div class="cloud-content" x-show="expandedClouds[cloud.cloudId]">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Cloud ID</div>
+                                <div class="info-value" x-text="cloud.cloudId"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Provider</div>
+                                <div class="info-value" x-text="cloud.cloudProvider || 'N/A'"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Endpoint</div>
+                                <div class="info-value" x-text="cloud.endpoint || 'N/A'"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Subnet</div>
+                                <div class="info-value" x-text="cloud.subnet || 'N/A'"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Security Group</div>
+                                <div class="info-value" x-text="cloud.securityGroup || 'N/A'"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Default Network</div>
+                                <div class="info-value" x-text="cloud.defaultNetwork || 'N/A'"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Node Source Prefix</div>
+                                <div class="info-value" x-text="cloud.nodeSourceNamePrefix || 'N/A'"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Blacklist</div>
+                                <div class="info-value" x-text="cloud.blacklist || 'N/A'"></div>
+                            </div>
+                        </div>
+
+                        <div x-show="cloud.images && cloud.images.length > 0" style="margin-bottom: 20px;">
+                            <div class="section-title">Images (<span x-text="(cloud.images || []).length"></span>)</div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Provider ID</th>
+                                        <th>Owner</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="image in (cloud.images || [])" :key="image.id">
+                                        <tr>
+                                            <td x-text="image.id"></td>
+                                            <td x-text="image.name || 'N/A'"></td>
+                                            <td x-text="image.providerId || 'N/A'"></td>
+                                            <td x-text="image.owner || 'N/A'"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div x-show="cloud.hardware && cloud.hardware.length > 0" style="margin-bottom: 20px;">
+                            <div class="section-title">Hardware (<span x-text="(cloud.hardware || []).length"></span>)</div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Provider ID</th>
+                                        <th>Cores</th>
+                                        <th>RAM (MB)</th>
+                                        <th>Disk (GB)</th>
+                                        <th>GPU</th>
+                                        <th>Owner</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="hw in (cloud.hardware || [])" :key="hw.id">
+                                        <tr>
+                                            <td x-text="hw.id"></td>
+                                            <td x-text="hw.name || 'N/A'"></td>
+                                            <td x-text="hw.providerId || 'N/A'"></td>
+                                            <td x-text="hw.cores || 'N/A'"></td>
+                                            <td x-text="hw.ram || 'N/A'"></td>
+                                            <td x-text="hw.disk || 'N/A'"></td>
+                                            <td x-text="hw.gpu || 'N/A'"></td>
+                                            <td x-text="hw.owner || 'N/A'"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div x-show="cloud.deploymentNodeNames && cloud.deploymentNodeNames.length > 0">
+                            <div class="section-title">Deployments (<span x-text="(cloud.deploymentNodeNames || []).length"></span>)</div>
+                            <div style="padding: 12px; background: #f9fafb; border-radius: 6px;">
+                                <template x-for="(nodeId, idx) in (cloud.deploymentNodeNames || [])" :key="idx">
+                                    <span style="display: inline-block; padding: 4px 8px; margin: 4px; background: white; border-radius: 4px; font-size: 12px;" x-text="nodeId"></span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function cloudsMonitor() {
+            return {
+                clouds: [],
+                loading: false,
+                error: false,
+                autoRefresh: true,
+                refreshInterval: 5000,
+                refreshTimer: null,
+                expandedClouds: {},
+                lastUpdate: null,
+                scrollPosition: null,
+
+                init() {
+                    localStorage.setItem('sessionid', '1234567890');
+                    this.loadClouds();
+                    this.startAutoRefresh();
+                },
+
+                saveScrollPosition() {
+                    this.scrollPosition = {
+                        x: window.scrollX || window.pageXOffset,
+                        y: window.scrollY || window.pageYOffset
+                    };
+                },
+
+                restoreScrollPosition() {
+                    if (this.scrollPosition) {
+                        // Use multiple requestAnimationFrame calls to ensure DOM has fully updated
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                window.scrollTo(this.scrollPosition.x, this.scrollPosition.y);
+                            });
+                        });
+                    }
+                },
+
+                async loadClouds() {
+                    // Save scroll position before updating data
+                    this.saveScrollPosition();
+                    
+                    this.loading = true;
+                    this.error = false;
+                    try {
+                        const sessionId = localStorage.getItem('sessionid');
+                        const headers = {};
+                        if (sessionId) {
+                            headers['sessionid'] = sessionId;
+                        }
+                        const response = await fetch('/sal/cloud', {
+                            headers: headers
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch clouds');
+                        }
+                        const data = await response.json();
+                        this.clouds = data;
+                        this.lastUpdate = new Date().toLocaleTimeString();
+                        this.error = false;
+                    } catch (error) {
+                        console.error('Error loading clouds:', error);
+                        this.error = true;
+                    } finally {
+                        this.loading = false;
+                        // Restore scroll position after DOM updates
+                        await this.$nextTick();
+                        this.restoreScrollPosition();
+                    }
+                },
+
+                startAutoRefresh() {
+                    if (this.refreshTimer) {
+                        clearInterval(this.refreshTimer);
+                    }
+                    if (this.autoRefresh) {
+                        this.refreshTimer = setInterval(() => {
+                            this.loadClouds();
+                        }, this.refreshInterval);
+                    }
+                },
+
+                toggleAutoRefresh() {
+                    if (this.autoRefresh) {
+                        this.startAutoRefresh();
+                    } else {
+                        if (this.refreshTimer) {
+                            clearInterval(this.refreshTimer);
+                            this.refreshTimer = null;
+                        }
+                    }
+                },
+
+                toggleCloud(cloudId) {
+                    this.expandedClouds[cloudId] = !this.expandedClouds[cloudId];
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

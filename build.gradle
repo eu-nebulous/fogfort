@@ -1,0 +1,48 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.0.0'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'eu.nebulouscloud'
+version = '0.0.1-SNAPSHOT'
+description = 'fogfort'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	implementation("io.springfox:springfox-swagger2:3.0.0")
+	compileOnly("org.projectlombok:lombok:1.18.42")
+	annotationProcessor 'org.projectlombok:lombok:1.18.42'
+	
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+  	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+  	implementation(platform("software.amazon.awssdk:bom:2.27.21"))
+  	implementation("software.amazon.awssdk:ec2")
+  	implementation("org.hsqldb:hsqldb:2.7.4")
+  	implementation("com.github.mwiede:jsch:2.27.7")
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+	//needed bc we use lombok. https://stackoverflow.com/questions/41265266/how-to-solve-inaccessibleobjectexception-unable-to-make-member-accessible-m
+	jvmArgs = [
+		'--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+	]
+}
+tasks.named('bootRun') {
+	//needed bc we use lombok. https://stackoverflow.com/questions/41265266/how-to-solve-inaccessibleobjectexception-unable-to-make-member-accessible-m
+	jvmArgs = [
+		'--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+	]
+}

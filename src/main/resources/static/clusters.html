@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clusters Monitor - Fogfort</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .refresh-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .clusters-container {
+            display: grid;
+            gap: 20px;
+        }
+
+        .cluster-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cluster-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .cluster-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cluster-header:hover {
+            opacity: 0.95;
+        }
+
+        .cluster-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .cluster-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cluster-info-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .cluster-info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-DEFINED { background: #dbeafe; color: #1e40af; }
+        .status-DEPLOYED { background: #d1fae5; color: #065f46; }
+        .status-FAILED { background: #fee2e2; color: #991b1b; }
+        .status-SUBMITTED { background: #fef3c7; color: #92400e; }
+        .status-SCALING { background: #e0e7ff; color: #3730a3; }
+        .status-OTHER { background: #e5e7eb; color: #6b7280; }
+
+        .cluster-content {
+            padding: 20px;
+        }
+
+        .nodes-section {
+            margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .env-vars {
+            max-width: 600px;
+            max-height: 200px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            background: #f9fafb;
+            padding: 8px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div x-data="clustersMonitor()" x-init="init()" class="container">
+        <div class="header">
+            <div>
+                <h1>Clusters Monitor</h1>
+                <div class="status-indicator" style="margin-top: 8px;">
+                    <span class="status-dot" :class="{ 'error': error }"></span>
+                    <span x-text="error ? 'Connection Error' : 'Connected'"></span>
+                    <span x-show="lastUpdate">• Last update: <span x-text="lastUpdate"></span></span>
+                </div>
+            </div>
+            <div class="refresh-controls">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                    <input type="checkbox" x-model="autoRefresh" @change="toggleAutoRefresh()">
+                    Auto-refresh
+                </label>
+                <button class="btn-secondary" @click="refreshInterval = refreshInterval === 5000 ? 10000 : 5000">
+                    <span x-text="refreshInterval / 1000 + 's'"></span>
+                </button>
+                <button class="btn-primary" @click="loadClusters()" :disabled="loading">
+                    <span x-show="!loading">Refresh</span>
+                    <span x-show="loading">Loading...</span>
+                </button>
+            </div>
+        </div>
+
+        <div x-show="loading && clusters.length === 0" class="loading">
+            <div class="spinner"></div>
+            <p>Loading clusters...</p>
+        </div>
+
+        <div x-show="!loading && clusters.length === 0" class="empty-state">
+            <div class="empty-state-icon">☁️</div>
+            <h2>No clusters found</h2>
+            <p>There are no clusters in the repository yet.</p>
+        </div>
+
+        <div class="clusters-container" x-show="!loading && clusters.length > 0">
+            <template x-for="cluster in clusters" :key="cluster.clusterId">
+                <div class="cluster-card">
+                    <div class="cluster-header" @click="toggleCluster(cluster.clusterId)">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+                                Cluster: <span x-text="cluster.name || cluster.clusterId"></span>
+                            </div>
+                            <div class="cluster-info">
+                                <div class="cluster-info-item">
+                                    <span class="cluster-info-label">ID</span>
+                                    <span class="cluster-info-value" x-text="cluster.clusterId"></span>
+                                </div>
+                                <div class="cluster-info-item">
+                                    <span class="cluster-info-label">Status</span>
+                                    <span class="status-badge" :class="'status-' + (cluster.status || 'OTHER')" x-text="cluster.status || 'OTHER'"></span>
+                                </div>
+                                <div class="cluster-info-item">
+                                    <span class="cluster-info-label">Master Node</span>
+                                    <span class="cluster-info-value" x-text="cluster['master-node'] || 'N/A'"></span>
+                                </div>
+                                <div class="cluster-info-item">
+                                    <span class="cluster-info-label">Nodes</span>
+                                    <span class="cluster-info-value" x-text="(cluster.nodes || []).length"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="toggle-icon" :class="{ 'rotated': expandedClusters[cluster.clusterId] }">▼</div>
+                    </div>
+                    <div class="cluster-content" x-show="expandedClusters[cluster.clusterId]">
+                        <div x-show="cluster['env-vars'] && Object.keys(cluster['env-vars']).length > 0" style="margin-bottom: 20px;">
+                            <div class="section-title">Environment Variables</div>
+                            <div class="env-vars" x-text="formatEnvVars(cluster['env-vars'])"></div>
+                        </div>
+                        <div class="nodes-section">
+                            <div class="section-title">Nodes</div>
+                            <table x-show="cluster.nodes && cluster.nodes.length > 0">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Provider ID</th>
+                                        <th>Node URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="node in (cluster.nodes || [])" :key="node.id">
+                                        <tr>
+                                            <td x-text="node.id"></td>
+                                            <td x-text="node.name || 'N/A'"></td>
+                                            <td x-text="node.providerId || 'N/A'"></td>
+                                            <td x-text="node.nodeUrl || 'N/A'"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                            <div x-show="!cluster.nodes || cluster.nodes.length === 0" style="padding: 20px; text-align: center; color: #6b7280;">
+                                No nodes found for this cluster.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function clustersMonitor() {
+            return {
+                clusters: [],
+                loading: false,
+                error: false,
+                autoRefresh: true,
+                refreshInterval: 5000,
+                refreshTimer: null,
+                expandedClusters: {},
+                lastUpdate: null,
+                scrollPosition: null,
+
+                init() {
+                    localStorage.setItem('sessionid', '1234567890');
+                    this.loadClusters();
+                    this.startAutoRefresh();
+                },
+
+                saveScrollPosition() {
+                    this.scrollPosition = {
+                        x: window.scrollX || window.pageXOffset,
+                        y: window.scrollY || window.pageYOffset
+                    };
+                },
+
+                restoreScrollPosition() {
+                    if (this.scrollPosition) {
+                        // Use multiple requestAnimationFrame calls to ensure DOM has fully updated
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                window.scrollTo(this.scrollPosition.x, this.scrollPosition.y);
+                            });
+                        });
+                    }
+                },
+
+                async loadClusters() {
+                    // Save scroll position before updating data
+                    this.saveScrollPosition();
+                    
+                    this.loading = true;
+                    this.error = false;
+                    try {
+                        const sessionId = localStorage.getItem('sessionid');
+                        const headers = {};
+                        if (sessionId) {
+                            headers['sessionid'] = sessionId;
+                        }
+                        const response = await fetch('/sal/cluster', {
+                            headers: headers
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch clusters');
+                        }
+                        const data = await response.json();
+                        this.clusters = data;
+                        this.lastUpdate = new Date().toLocaleTimeString();
+                        this.error = false;
+                    } catch (error) {
+                        console.error('Error loading clusters:', error);
+                        this.error = true;
+                    } finally {
+                        this.loading = false;
+                        // Restore scroll position after DOM updates
+                        await this.$nextTick();
+                        this.restoreScrollPosition();
+                    }
+                },
+
+                startAutoRefresh() {
+                    if (this.refreshTimer) {
+                        clearInterval(this.refreshTimer);
+                    }
+                    if (this.autoRefresh) {
+                        this.refreshTimer = setInterval(() => {
+                            this.loadClusters();
+                        }, this.refreshInterval);
+                    }
+                },
+
+                toggleAutoRefresh() {
+                    if (this.autoRefresh) {
+                        this.startAutoRefresh();
+                    } else {
+                        if (this.refreshTimer) {
+                            clearInterval(this.refreshTimer);
+                            this.refreshTimer = null;
+                        }
+                    }
+                },
+
+                toggleCluster(clusterId) {
+                    this.expandedClusters[clusterId] = !this.expandedClusters[clusterId];
+                },
+
+                formatEnvVars(envVars) {
+                    if (!envVars) return 'No environment variables';
+                    return Object.entries(envVars).map(([key, value]) => `${key}=${value}`).join('\n');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

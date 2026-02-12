@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobs Monitor - Fogfort</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .refresh-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .jobs-container {
+            display: grid;
+            gap: 20px;
+        }
+
+        .job-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .job-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .job-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .job-header:hover {
+            opacity: 0.95;
+        }
+
+        .job-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .job-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .job-info-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .job-info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-CREATED { background: #dbeafe; color: #1e40af; }
+        .status-IN_PROGRESS { background: #fef3c7; color: #92400e; }
+        .status-COMPLETED { background: #d1fae5; color: #065f46; }
+        .status-FAILED { background: #fee2e2; color: #991b1b; }
+        .status-CANCELLED { background: #f3f4f6; color: #374151; }
+        .status-UNKNOWN { background: #e5e7eb; color: #6b7280; }
+
+        .job-content {
+            padding: 20px;
+        }
+
+        .tasks-section {
+            margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .executions-table {
+            margin-top: 10px;
+        }
+
+        .executions-table th {
+            background: #f3f4f6;
+            font-size: 12px;
+        }
+
+        .executions-table td {
+            font-size: 12px;
+        }
+
+        .log-output {
+            max-width: 100%;
+            max-height: 400px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        .json-output {
+            max-width: 100%;
+            max-height: 400px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: #f8f9fa;
+            color: #212529;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.5;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .executions-container {
+            display: grid;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .execution-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        .execution-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-bottom: 1px solid #d1d5db;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .execution-header-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .execution-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .execution-info-label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .execution-info-value {
+            font-size: 14px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .execution-body {
+            padding: 20px;
+        }
+
+        .execution-body-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Modal/Popup Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 90vw;
+            max-height: 90vh;
+            width: 1200px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .task-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .task-row:hover {
+            background: #f0f0f0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div x-data="jobsMonitor()" x-init="init()" class="container">
+        <div class="header">
+            <div>
+                <h1>Jobs Monitor</h1>
+                <div class="status-indicator" style="margin-top: 8px;">
+                    <span class="status-dot" :class="{ 'error': error }"></span>
+                    <span x-text="error ? 'Connection Error' : 'Connected'"></span>
+                    <span x-show="lastUpdate">• Last update: <span x-text="lastUpdate"></span></span>
+                </div>
+            </div>
+            <div class="refresh-controls">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                    <input type="checkbox" x-model="autoRefresh" @change="toggleAutoRefresh()">
+                    Auto-refresh
+                </label>
+                <button class="btn-secondary" @click="refreshInterval = refreshInterval === 5000 ? 10000 : 5000">
+                    <span x-text="refreshInterval / 1000 + 's'"></span>
+                </button>
+                <button class="btn-primary" @click="loadJobs()" :disabled="loading">
+                    <span x-show="!loading">Refresh</span>
+                    <span x-show="loading">Loading...</span>
+                </button>
+            </div>
+        </div>
+
+        <div x-show="loading && jobs.length === 0" class="loading">
+            <div class="spinner"></div>
+            <p>Loading jobs...</p>
+        </div>
+
+        <div x-show="!loading && jobs.length === 0" class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <h2>No jobs found</h2>
+            <p>There are no jobs in the repository yet.</p>
+        </div>
+
+        <div class="jobs-container" x-show="!loading && jobs.length > 0">
+            <template x-for="job in jobs" :key="job.jobId">
+                <div class="job-card">
+                    <div class="job-header" @click="toggleJob(job.jobId)">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+                                Job: <span x-text="job.jobId"></span>
+                            </div>
+                            <div class="job-info">
+                                <div class="job-info-item">
+                                    <span class="job-info-label">Type</span>
+                                    <span class="job-info-value" x-text="job.jobType || 'N/A'"></span>
+                                </div>
+                                <div class="job-info-item">
+                                    <span class="job-info-label">Status</span>
+                                    <span class="status-badge" :class="'status-' + (job.status || 'UNKNOWN')" x-text="job.status || 'UNKNOWN'"></span>
+                                </div>
+                                <div class="job-info-item">
+                                    <span class="job-info-label">Created</span>
+                                    <span class="job-info-value" x-text="formatDate(job.createdAt)"></span>
+                                </div>
+                                <div class="job-info-item">
+                                    <span class="job-info-label">Updated</span>
+                                    <span class="job-info-value" x-text="formatDate(job.updatedAt)"></span>
+                                </div>
+                                <div class="job-info-item">
+                                    <span class="job-info-label">Tasks</span>
+                                    <span class="job-info-value" x-text="(job && job.tasks ? job.tasks.length : 0)"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="toggle-icon" :class="{ 'rotated': expandedJobs[job.jobId] }">▼</div>
+                    </div>
+                    <div class="job-content" x-show="expandedJobs[job.jobId]">
+                        <div class="tasks-section">
+                            <!--<div class="section-title">Job JSON</div>
+                            <pre class="json-output" x-text="JSON.stringify(job, null, 2)"></pre>-->
+                            
+                            <div class="section-title">Tasks</div>
+                            <table x-show="job.tasks && job.tasks.length > 0">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Target Node</th>
+                                        <th>Created</th>
+                                        <th>Updated</th>
+                                        <th>Retries</th>
+                                        <th>Executions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="task in (job && job.tasks ? job.tasks : [])" :key="task.id">
+                                        <tr class="task-row" @click="openTaskPopup(task, job.jobId)">
+                                            <td x-text="task.id"></td>
+                                            <td x-text="task.description || 'N/A'"></td>
+                                            <td>
+                                                <span class="status-badge" :class="'status-' + (task.status || 'UNKNOWN')" x-text="task.status || 'UNKNOWN'"></span>
+                                            </td>
+                                            <td x-text="task.targetNodeId || 'N/A'"></td>
+                                            <td x-text="formatDate(task.createdAt)"></td>
+                                            <td x-text="formatDate(task.updatedAt)"></td>
+                                            <td x-text="task.currentRetry + '/' + task.maxRetries"></td>
+                                            <td x-text="(task.executions || []).length"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                            <div x-show="!job.tasks || job.tasks.length === 0" style="padding: 20px; text-align: center; color: #6b7280;">
+                                No tasks found for this job.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Task Popup Modal -->
+        <div x-show="selectedTask" 
+             x-cloak
+             class="modal-overlay" 
+             @click.self="closeTaskPopup()"
+             @keydown.escape.window="closeTaskPopup()"
+             x-transition>
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2>
+                        Task: <span x-text="selectedTask ? selectedTask.id : ''"></span>
+                        <span x-show="selectedTask && selectedTask.description" style="font-weight: 400; font-size: 14px; margin-left: 10px; opacity: 0.9;">
+                            - <span x-text="selectedTask && selectedTask.description ? selectedTask.description : ''"></span>
+                        </span>
+                    </h2>
+                    <button class="modal-close" @click="closeTaskPopup()">×</button>
+                </div>
+                <div class="modal-body" x-show="selectedTask">
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="execution-info-item">
+                                <span class="execution-info-label">Status</span>
+                                <span class="status-badge" :class="'status-' + (selectedTask ? selectedTask.status : 'UNKNOWN')" x-text="selectedTask ? selectedTask.status : 'UNKNOWN'"></span>
+                            </div>
+                            <div class="execution-info-item">
+                                <span class="execution-info-label">Target Node</span>
+                                <span class="execution-info-value" x-text="selectedTask ? (selectedTask.targetNodeId || 'N/A') : 'N/A'"></span>
+                            </div>
+                            <div class="execution-info-item">
+                                <span class="execution-info-label">Retries</span>
+                                <span class="execution-info-value" x-text="selectedTask ? (selectedTask.currentRetry + '/' + selectedTask.maxRetries) : 'N/A'"></span>
+                            </div>
+                            <div class="execution-info-item">
+                                <span class="execution-info-label">Executions</span>
+                                <span class="execution-info-value" x-text="selectedTask ? ((selectedTask.executions || []).length) : 0"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section-title">Executions</div>
+                    <div class="executions-container" x-show="selectedTask && selectedTask.executions && selectedTask.executions.length > 0">
+                        <template x-for="(execution, idx) in (selectedTask ? (selectedTask.executions || []) : [])" :key="idx">
+                            <div class="execution-card">
+                                <div class="execution-header">
+                                    <div class="execution-header-info">
+                                        <div class="execution-info-item">
+                                            <span class="execution-info-label">Execution #<span x-text="idx + 1"></span></span>
+                                            <span class="execution-info-value" style="font-size: 12px; color: #6b7280;">Index: <span x-text="idx"></span></span>
+                                        </div>
+                                        <div class="execution-info-item">
+                                            <span class="execution-info-label">Start Time</span>
+                                            <span class="execution-info-value" x-text="formatDate(execution.start)"></span>
+                                        </div>
+                                        <div class="execution-info-item">
+                                            <span class="execution-info-label">End Time</span>
+                                            <span class="execution-info-value" x-text="formatDate(execution.end) || 'Running...'"></span>
+                                        </div>
+                                        <div class="execution-info-item">
+                                            <span class="execution-info-label">Status</span>
+                                            <span class="status-badge" :class="execution.success ? 'status-COMPLETED' : 'status-FAILED'">
+                                                <span x-text="execution.success ? 'Success' : 'Failed'"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="execution-body">
+                                    <div class="execution-body-title">Output Log</div>
+                                    <div class="log-output" 
+                                         x-text="execution.loadedLog !== undefined ? (execution.loadedLog || 'No output available') : (execution.loadingLog ? 'Loading...' : 'Loading...')"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="!selectedTask || !selectedTask.executions || selectedTask.executions.length === 0" style="padding: 40px; text-align: center; color: #6b7280; background: #f9fafb; border-radius: 8px;">
+                        <div class="empty-state-icon">📋</div>
+                        <p>No executions found for this task.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function jobsMonitor() {
+            return {
+                jobs: [],
+                loading: false,
+                error: false,
+                autoRefresh: true,
+                refreshInterval: 5000,
+                refreshTimer: null,
+                expandedJobs: {},
+                lastUpdate: null,
+                scrollPosition: null,
+                loadedLogs: new Map(),
+                selectedTask: null,
+                selectedJobId: null,
+                taskPopupLogRefreshTimer: null,
+
+                init() {
+                    localStorage.setItem('sessionid', '1234567890');
+                    this.loadJobs();
+                    this.startAutoRefresh();
+                },
+
+                saveScrollPosition() {
+                    this.scrollPosition = {
+                        x: window.scrollX || window.pageXOffset,
+                        y: window.scrollY || window.pageYOffset
+                    };
+                },
+
+                restoreScrollPosition() {
+                    if (this.scrollPosition) {
+                        // Use multiple requestAnimationFrame calls to ensure DOM has fully updated
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                window.scrollTo(this.scrollPosition.x, this.scrollPosition.y);
+                            });
+                        });
+                    }
+                },
+
+                async loadJobs() {
+                    // Save scroll position before updating data
+                    this.saveScrollPosition();
+                    
+                    // Preserve loaded logs
+                    const preservedLogs = new Map();
+                    for (const job of this.jobs || []) {
+                        if (job.tasks) {
+                            for (const task of job.tasks) {
+                                if (task.executions) {
+                                    for (let idx = 0; idx < task.executions.length; idx++) {
+                                        const execution = task.executions[idx];
+                                        const logKey = `${task.id}-${idx}`;
+                                        if (execution.loadedLog !== undefined) {
+                                            preservedLogs.set(logKey, execution.loadedLog);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    this.loading = true;
+                    this.error = false;
+                    try {
+                        const sessionId = localStorage.getItem('sessionid');
+                        const headers = {};
+                        if (sessionId) {
+                            headers['sessionid'] = sessionId;
+                        }
+                        const response = await fetch('/sal/job', {
+                            headers: headers
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch jobs');
+                        }
+                        const data = await response.json();
+                        
+                        // Restore loaded logs to new data
+                        for (const job of data || []) {
+                            if (job.tasks) {
+                                for (const task of job.tasks) {
+                                    if (task.executions) {
+                                        for (let idx = 0; idx < task.executions.length; idx++) {
+                                            const execution = task.executions[idx];
+                                            const logKey = `${task.id}-${idx}`;
+                                            if (preservedLogs.has(logKey)) {
+                                                execution.loadedLog = preservedLogs.get(logKey);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        this.jobs = data;
+                        
+                        // Update selected task if popup is open
+                        if (this.selectedTask && this.selectedJobId) {
+                            const updatedJob = data.find(j => j.jobId === this.selectedJobId);
+                            if (updatedJob && updatedJob.tasks) {
+                                const updatedTask = updatedJob.tasks.find(t => t.id === this.selectedTask.id);
+                                if (updatedTask) {
+                                    // Preserve loaded logs
+                                    const taskLogs = new Map();
+                                    if (this.selectedTask.executions) {
+                                        for (let idx = 0; idx < this.selectedTask.executions.length; idx++) {
+                                            const exec = this.selectedTask.executions[idx];
+                                            if (exec.loadedLog !== undefined) {
+                                                taskLogs.set(idx, exec.loadedLog);
+                                            }
+                                        }
+                                    }
+                                    // Update selected task with new data
+                                    this.selectedTask = updatedTask;
+                                    // Restore logs
+                                    if (updatedTask.executions) {
+                                        for (let idx = 0; idx < updatedTask.executions.length; idx++) {
+                                            if (taskLogs.has(idx)) {
+                                                updatedTask.executions[idx].loadedLog = taskLogs.get(idx);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        this.lastUpdate = new Date().toLocaleTimeString();
+                        this.error = false;
+                    } catch (error) {
+                        console.error('Error loading jobs:', error);
+                        this.error = true;
+                    } finally {
+                        this.loading = false;
+                        // Restore scroll position after DOM updates
+                        // Wait for Alpine to finish updating the DOM
+                        await this.$nextTick();
+                        this.restoreScrollPosition();
+                    }
+                },
+
+                startAutoRefresh() {
+                    if (this.refreshTimer) {
+                        clearInterval(this.refreshTimer);
+                    }
+                    if (this.autoRefresh) {
+                        this.refreshTimer = setInterval(() => {
+                            this.loadJobs();
+                        }, this.refreshInterval);
+                    }
+                },
+
+                toggleAutoRefresh() {
+                    if (this.autoRefresh) {
+                        this.startAutoRefresh();
+                    } else {
+                        if (this.refreshTimer) {
+                            clearInterval(this.refreshTimer);
+                            this.refreshTimer = null;
+                        }
+                    }
+                },
+
+                toggleJob(jobId) {
+                    this.expandedJobs[jobId] = !this.expandedJobs[jobId];
+                },
+
+                openTaskPopup(task, jobId) {
+                    this.selectedTask = task;
+                    this.selectedJobId = jobId;
+                    // Load all execution logs for this task
+                    this.loadTaskExecutionLogs(task);
+                    // Start periodic refresh of logs
+                    this.startTaskPopupLogRefresh();
+                },
+
+                closeTaskPopup() {
+                    this.selectedTask = null;
+                    this.selectedJobId = null;
+                    this.stopTaskPopupLogRefresh();
+                },
+
+                startTaskPopupLogRefresh() {
+                    this.stopTaskPopupLogRefresh();
+                    // Refresh logs every 3 seconds while popup is open
+                    this.taskPopupLogRefreshTimer = setInterval(() => {
+                        if (this.selectedTask) {
+                            this.loadTaskExecutionLogs(this.selectedTask);
+                        } else {
+                            this.stopTaskPopupLogRefresh();
+                        }
+                    }, 3000);
+                },
+
+                stopTaskPopupLogRefresh() {
+                    if (this.taskPopupLogRefreshTimer) {
+                        clearInterval(this.taskPopupLogRefreshTimer);
+                        this.taskPopupLogRefreshTimer = null;
+                    }
+                },
+
+                async loadTaskExecutionLogs(task) {
+                    if (!task || !task.executions) return;
+                    
+                    for (let idx = 0; idx < task.executions.length; idx++) {
+                        const execution = task.executions[idx];
+                        // Always reload logs to get latest content
+                        await this.loadExecutionLog(task.id, idx, execution);
+                    }
+                },
+
+
+                async loadExecutionLog(taskId, executionIndex, execution) {
+                    // Skip if already loading
+                    if (execution.loadingLog) {
+                        return;
+                    }
+                    
+                    execution.loadingLog = true;
+                    try {
+                        const sessionId = localStorage.getItem('sessionid');
+                        const headers = {};
+                        if (sessionId) {
+                            headers['sessionid'] = sessionId;
+                        }
+                        const response = await fetch(`/sal/job/task/${taskId}/execution/${executionIndex}/log`, {
+                            headers: headers
+                        });
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch execution log');
+                        }
+                        const logContent = await response.text();
+                        execution.loadedLog = logContent;
+                        const logKey = `${taskId}-${executionIndex}`;
+                        this.loadedLogs.set(logKey, logContent);
+                    } catch (error) {
+                        console.error('Error loading execution log:', error);
+                        execution.loadedLog = 'Error loading log: ' + error.message;
+                    } finally {
+                        execution.loadingLog = false;
+                    }
+                },
+
+                formatDate(dateString) {
+                    if (!dateString) return 'N/A';
+                    try {
+                        const date = new Date(dateString);
+                        return date.toLocaleString();
+                    } catch (e) {
+                        return dateString;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

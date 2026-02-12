@@ -1,0 +1,33 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+package eu.nebulouscloud.fogfort.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import eu.nebulouscloud.fogfort.model.Hardware;
+
+@Repository
+public interface HardwareRepository extends JpaRepository<Hardware, String> {
+
+	@Transactional(readOnly = true)
+	@Query("SELECT h FROM Hardware h WHERE LOWER(h.id) LIKE CONCAT(LOWER(:cloudId), '%')")
+	List<Hardware> findByCloudId(@Param("cloudId") String cloudId);
+
+	@Transactional(readOnly = true)
+	@Query(value = "SELECT id FROM Hardware WHERE id NOT IN (SELECT hardware.id FROM NodeCandidate GROUP BY hardware.id)")
+	List<String> getOrphanHardwareIds();
+
+	@Modifying(clearAutomatically = true)
+	@Query(value = "DELETE FROM Hardware WHERE id NOT IN (SELECT hardware.id FROM NodeCandidate GROUP BY hardware.id)")
+	void deleteOrphanHardwareIds();
+}
