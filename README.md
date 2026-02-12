@@ -71,6 +71,9 @@ Currently, the component is missing:
 
 The application will start on port 8888 by default. Access the web GUI at `http://localhost:8888/gui/`.
 
+<img  alt="image" src="https://github.com/user-attachments/assets/d7bc62fb-5aa4-46de-b922-012f195cc5fa" />
+
+
 ### Run Tests
 
 ```bash
